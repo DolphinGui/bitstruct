@@ -76,11 +76,11 @@ template <size_t s> struct BITSTRUCT_PUBLIC Bitstruct {
     }
 
     BITSTRUCT_CONSTEXPR operator data_type() const noexcept {
-      Word mask = static_cast<Word>(0xFFFFFFFFFFFFFFFF);
-      mask <<= bitsize - extent - begin;
-      mask >>= bitsize - extent - begin;
-      mask >>= begin;
-      return data_type((static_cast<Word>(data) >> begin) & mask);
+      Word d = data;
+      d <<= bitsize - extent - begin;
+      d >>= bitsize - extent - begin;
+      d >>= begin;
+      return data_type(d);
     }
   };
 
