@@ -1,10 +1,15 @@
 #pragma once
 
 #include <array>
-#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
+#ifndef NDEBUG
+#include <stdexcept>
+#define THROWING true
+#else
+#define THROWING false
+#endif
 
 #if defined _WIN32 || defined __CYGWIN__
 #ifdef BUILDING_BITSTRUCT
@@ -54,10 +59,16 @@ template <size_t s> struct BITSTRUCT_PUBLIC Bitstruct {
     constexpr Bitref(Word &w) : data(w){};
     Word &data;
 
-    BITSTRUCT_CONSTEXPR Bitref &operator=(data_type i) noexcept {
+    BITSTRUCT_CONSTEXPR Bitref &operator=(data_type i) noexcept(!THROWING) {
       static_assert(!std::is_const<data_type>::value,
                     "cannot assign to const value");
       auto &w = reinterpret_cast<Word &>(i);
+#ifndef NDEBUG
+      auto max = 1 << extent;
+      if (w >= max) {
+        throw std::runtime_error("Data type i is out of bounds");
+      }
+#endif
       w <<= bitsize - extent;
       w >>= bitsize - extent;
       reinterpret_cast<Word &>(data) |= w << begin;
