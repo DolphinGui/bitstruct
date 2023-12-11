@@ -11,20 +11,6 @@
 #define THROWING false
 #endif
 
-#if defined _WIN32 || defined __CYGWIN__
-#ifdef BUILDING_BITSTRUCT
-#define BITSTRUCT_PUBLIC __declspec(dllexport)
-#else
-#define BITSTRUCT_PUBLIC __declspec(dllimport)
-#endif
-#else
-#ifdef BUILDING_BITSTRUCT
-#define BITSTRUCT_PUBLIC __attribute__((visibility("default")))
-#else
-#define BITSTRUCT_PUBLIC
-#endif
-#endif
-
 #if __cplusplus > 201103
 #define BITSTRUCT_CONSTEXPR constexpr
 #else
@@ -49,7 +35,7 @@ template <> struct bytes_t<8> {
 template <size_t size> using Bytes = typename bytes_t<size>::type;
 } // namespace impl
 
-template <size_t s> struct BITSTRUCT_PUBLIC Bitstruct {
+template <size_t s> struct Bitstruct {
   template <size_t begin, size_t extent, typename data_type = uint8_t>
   struct Bitref {
     static_assert(std::is_trivial<data_type>::value,
@@ -104,5 +90,4 @@ private:
 
 } // namespace bit
 
-#undef BITSTRUCT_PUBLIC
 #undef BITSTRUCT_CONSTEXPR
