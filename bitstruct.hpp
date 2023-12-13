@@ -96,12 +96,12 @@ template <size_t bitlength> struct Bitstruct {
 
   template <size_t bit, size_t extent = 1, typename T = uint8_t>
   BITSTRUCT_CONSTEXPR Bitref<bit % 8, extent, T> get() noexcept {
-    static_assert(sizeof(T) <= sizeof(data), "Data type is too small");
-    static_assert(bit < sizeof(data) * 8, "Bit index is out of bounds");
-    static_assert(bit + extent <= sizeof(data) * 8,
+    static_assert(sizeof(T) <= sizeof(_data), "Data type is too small");
+    static_assert(bit < sizeof(_data) * 8, "Bit index is out of bounds");
+    static_assert(bit + extent <= sizeof(_data) * 8,
                   "Bit extent is out of bounds");
     using Word = impl::Bytes<sizeof(T)>;
-    return Bitref<bit % 8, extent, T>(reinterpret_cast<Word &>(data[bit / 8]));
+    return Bitref<bit % 8, extent, T>(reinterpret_cast<Word &>(_data[bit / 8]));
   }
 
   template <typename T>
@@ -123,7 +123,14 @@ template <size_t bitlength> struct Bitstruct {
         .get<bit, extent, const typename std::remove_pointer<T>::type *>();
   }
 
-  std::array<uint8_t, bitlength / 8> data{};
+  BITSTRUCT_CONSTEXPR uint8_t *data() noexcept { return _data.data(); }
+  BITSTRUCT_CONSTEXPR const uint8_t *data() const noexcept {
+    return _data.data();
+  }
+  constexpr size_t size() const noexcept { return _data.size(); };
+
+private:
+  std::array<uint8_t, bitlength / 8> _data{};
 };
 
 } // namespace bit

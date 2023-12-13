@@ -7,8 +7,8 @@ namespace {
 template <typename To, typename From> To implicit_cast(From f) { return f; }
 
 enum struct Type : uint8_t { null, A, B, C };
-// [0..3] len [4..5] type [6] a [] b
-struct Register : private bit::Bitstruct<8> {
+// [0..3] len [4..5] type [6] a [7] b
+struct Register : bit::Bitstruct<8> {
   auto len() noexcept { return get<0, 4>(); }
   auto type() noexcept { return get<4, 2, Type>(); }
   auto a() const noexcept { return get<6, 1, bool>(); }
@@ -28,6 +28,10 @@ void test_reg() {
   assert(reg.b() == true);
   reg.b() = false;
   assert(reg.b() == false);
+  assert(reg.size() == 1);
+  // 0     0     11 1100
+  // false false C  12
+  assert(*reg.data() == 0b0'0'11'1100);
 }
 
 enum struct DataType : uint8_t { null, integer, floating };
