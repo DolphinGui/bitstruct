@@ -1,10 +1,7 @@
-#include <bitset>
 #include <bitstruct.hpp>
 #include <cassert>
 #include <cstdint>
-#include <iostream>
 #include <memory>
-#include <string>
 
 namespace {
 template <typename To, typename From> To implicit_cast(From f) { return f; }
