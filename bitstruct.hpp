@@ -53,7 +53,7 @@ template <size_t bitlength> struct Bitstruct {
                     "cannot assign to const value");
       auto w = Word(i);
 #ifndef NDEBUG
-      auto max = 1 << extent;
+      size_t max = size_t(1) << extent;
       if (w >= max) {
         throw std::runtime_error("Data type i is out of bounds");
       }
