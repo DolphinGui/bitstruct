@@ -61,6 +61,12 @@ template <size_t s> struct Bitstruct {
       }
 #endif
       w = impl::truncate<sizeof(Word) * 8 - extent>(w);
+      auto mask =
+          impl::truncate<sizeof(Word) * 8 - extent>(Word(0xFFFFFFFFFFFFFFFF));
+      mask <<= begin;
+      mask = ~mask;
+      // zeros out bits about to be overwritten
+      data &= mask;
       data |= w << begin;
       return *this;
     }
