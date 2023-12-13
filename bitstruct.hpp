@@ -89,15 +89,24 @@ template <size_t bitlength> struct Bitstruct {
     using Word = impl::Bytes<sizeof(T)>;
     return Bitref<bit % 8, extent, T>(reinterpret_cast<Word &>(data[bit / 8]));
   }
+
+  template <typename T>
+  using NonPtr = typename std::enable_if<!std::is_pointer<T>::value, T>::type;
+  template <typename T>
+  using Ptr = typename std::enable_if<std::is_pointer<T>::value, T>::type;
+
   template <size_t bit, size_t extent = 1, typename T = uint8_t>
-  BITSTRUCT_CONSTEXPR Bitref<bit % 8, extent, const T>
+  BITSTRUCT_CONSTEXPR Bitref<bit % 8, extent, const NonPtr<T>>
   get() const noexcept {
     return const_cast<Bitstruct &>(*this).get<bit, extent, const T>();
   }
 
   template <size_t bit, size_t extent = 1, typename T = uint8_t>
-  BITSTRUCT_CONSTEXPR Bitref<bit, extent, const T> get() const noexcept {
-    return get<bit, extent, const T>();
+  BITSTRUCT_CONSTEXPR Bitref<bit % 8, extent,
+                             const typename std::remove_pointer<Ptr<T>>::type *>
+  get() const noexcept {
+    return const_cast<Bitstruct &>(*this)
+        .get<bit, extent, const typename std::remove_pointer<T>::type *>();
   }
 
   std::array<uint8_t, bitlength / 8> data{};
