@@ -17,6 +17,20 @@
 #define BITSTRUCT_CONSTEXPR
 #endif
 
+#define BITSTRUCT_FIELD(name, index, extent)                                   \
+  Bitref<index % 8, extent> name() noexcept { return get<index, extent>(); }   \
+  Bitref<index % 8, extent, const uint8_t> name() const noexcept {             \
+    return get<index, extent>();                                               \
+  }
+
+#define BITSTRUCT_FIELD_T(name, index, extent, type)                           \
+  Bitref<index % 8, extent, type> name() noexcept {                            \
+    return get<index, extent, type>();                                         \
+  }                                                                            \
+  Bitref<index % 8, extent, const type> name() const noexcept {                \
+    return get<index, extent, type>();                                         \
+  }
+
 namespace bit {
 namespace impl {
 template <size_t size> struct bytes_t;
