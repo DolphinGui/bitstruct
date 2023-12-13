@@ -33,6 +33,11 @@ template <> struct bytes_t<8> {
   using type = uint64_t;
 };
 template <size_t size> using Bytes = typename bytes_t<size>::type;
+template <size_t MSB_trunc, typename T> constexpr T truncate(T num) noexcept {
+  num <<= MSB_trunc;
+  num >>= MSB_trunc;
+  return num;
+}
 } // namespace impl
 
 template <size_t s> struct Bitstruct {
@@ -55,16 +60,14 @@ template <size_t s> struct Bitstruct {
         throw std::runtime_error("Data type i is out of bounds");
       }
 #endif
-      w <<= bitsize - extent;
-      w >>= bitsize - extent;
-      reinterpret_cast<Word &>(data) |= w << begin;
+      w = impl::truncate<sizeof(Word) * 8 - extent>(w);
+      data |= w << begin;
       return *this;
     }
 
     BITSTRUCT_CONSTEXPR operator data_type() const noexcept {
       Word d = data;
-      d <<= bitsize - extent - begin;
-      d >>= bitsize - extent - begin;
+      d = impl::truncate<sizeof(Word) * 8 - (extent + begin)>(d);
       d >>= begin;
       return data_type(d);
     }
