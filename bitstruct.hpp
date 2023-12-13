@@ -43,8 +43,6 @@ template <size_t MSB_trunc, typename T> constexpr T truncate(T num) noexcept {
 template <size_t bitlength> struct Bitstruct {
   template <size_t begin, size_t extent, typename data_type = uint8_t>
   struct Bitref {
-    static_assert(std::is_trivial<data_type>::value,
-                  "Data type must be trivial");
     using Word = impl::Bytes<sizeof(data_type)>;
 
     constexpr Bitref(Word &w) : data(w){};
@@ -77,6 +75,9 @@ template <size_t bitlength> struct Bitstruct {
       d >>= begin;
       return data_type(d);
     }
+
+    static_assert(std::is_trivial<data_type>::value,
+                  "Data type must be trivial");
   };
 
   template <size_t bit, size_t extent = 1, typename T = uint8_t>
