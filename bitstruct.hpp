@@ -6,18 +6,24 @@
 #include <type_traits>
 #ifndef NDEBUG
 #include <stdexcept>
-#define THROWING true
-#else
-#define THROWING false
 #endif
 
 #if __cplusplus > 201103L
 #define BITSTRUCT_CONSTEXPR constexpr
-#if __cplusplus >= 202002L
-#include <span>
-#endif
 #else
 #define BITSTRUCT_CONSTEXPR
+#endif
+
+#if __has_cpp_attribute(nodiscard)
+#define BITSTRUCT_NODISCARD [[nodiscard]]
+#else
+#define BITSTRUCT_NODISCARD
+#endif
+
+#define BITSTRUCT_FUNCTION BITSTRUCT_NODISCARD BITSTRUCT_CONSTEXPR
+
+#if __cplusplus >= 202002L
+#include <span>
 #endif
 
 #define BITSTRUCT_FIELD(name, index, extent)                                   \
@@ -55,6 +61,11 @@ template <size_t MSB_trunc, typename T> constexpr T truncate(T num) noexcept {
   num >>= MSB_trunc;
   return num;
 }
+#ifndef NDEBUG
+constexpr bool throwing = true;
+#else
+constexpr bool throwing = false;
+#endif
 } // namespace impl
 
 template <size_t bitlength> struct Bitstruct {
@@ -65,7 +76,8 @@ template <size_t bitlength> struct Bitstruct {
     constexpr Bitref(Word &w) : data(w){};
     Word &data;
 
-    BITSTRUCT_CONSTEXPR Bitref &operator=(data_type i) noexcept(!THROWING) {
+    BITSTRUCT_CONSTEXPR Bitref &
+    operator=(data_type i) noexcept(!impl::throwing) {
       static_assert(not std::is_const<data_type>::value,
                     "cannot assign to const value");
       auto w = Word(i);
@@ -86,7 +98,7 @@ template <size_t bitlength> struct Bitstruct {
       return *this;
     }
 
-    BITSTRUCT_CONSTEXPR operator data_type() const noexcept {
+    BITSTRUCT_FUNCTION operator data_type() const noexcept {
       Word d = data;
       d = impl::truncate<sizeof(Word) * 8 - (extent + begin)>(d);
       d >>= begin;
@@ -98,7 +110,7 @@ template <size_t bitlength> struct Bitstruct {
   };
 
   template <size_t bit, size_t extent = 1, typename T = uint8_t>
-  BITSTRUCT_CONSTEXPR Bitref<bit % 8, extent, T> get() noexcept {
+  BITSTRUCT_FUNCTION Bitref<bit % 8, extent, T> get() noexcept {
     static_assert(sizeof(T) <= sizeof(_data), "Data type is too small");
     static_assert(bit < sizeof(_data) * 8, "Bit index is out of bounds");
     static_assert(bit + extent <= sizeof(_data) * 8,
@@ -113,21 +125,21 @@ template <size_t bitlength> struct Bitstruct {
   using Ptr = typename std::enable_if<std::is_pointer<T>::value, T>::type;
 
   template <size_t bit, size_t extent = 1, typename T = uint8_t>
-  BITSTRUCT_CONSTEXPR Bitref<bit % 8, extent, const NonPtr<T>>
+  BITSTRUCT_FUNCTION Bitref<bit % 8, extent, const NonPtr<T>>
   get() const noexcept {
     return const_cast<Bitstruct &>(*this).get<bit, extent, const T>();
   }
 
   template <size_t bit, size_t extent = 1, typename T = uint8_t>
-  BITSTRUCT_CONSTEXPR Bitref<bit % 8, extent,
-                             const typename std::remove_pointer<Ptr<T>>::type *>
+  BITSTRUCT_FUNCTION Bitref<bit % 8, extent,
+                            const typename std::remove_pointer<Ptr<T>>::type *>
   get() const noexcept {
     return const_cast<Bitstruct &>(*this)
         .get<bit, extent, const typename std::remove_pointer<T>::type *>();
   }
 
-  BITSTRUCT_CONSTEXPR uint8_t *data() noexcept { return _data.data(); }
-  BITSTRUCT_CONSTEXPR const uint8_t *data() const noexcept {
+  BITSTRUCT_FUNCTION uint8_t *data() noexcept { return _data.data(); }
+  BITSTRUCT_FUNCTION const uint8_t *data() const noexcept {
     return _data.data();
   }
   constexpr size_t size() const noexcept { return _data.size(); };
@@ -135,12 +147,12 @@ template <size_t bitlength> struct Bitstruct {
 #ifdef __cpp_lib_span
 
   template <typename Char = uint8_t>
-  BITSTRUCT_CONSTEXPR std::span<Char> data_span() noexcept {
+  BITSTRUCT_FUNCTION std::span<Char> data_span() noexcept {
     return std::span<Char>(reinterpret_cast<Char *>(_data.data()),
                            _data.size());
   }
   template <typename Char = uint8_t>
-  BITSTRUCT_CONSTEXPR std::span<const Char> data_span() const noexcept {
+  BITSTRUCT_FUNCTION std::span<const Char> data_span() const noexcept {
     return std::span<const Char>(reinterpret_cast<const Char *>(_data.data()),
                                  _data.size());
   }
@@ -153,4 +165,6 @@ private:
 
 } // namespace bit
 
+#undef BITSTRUCT_FUNCTION
+#undef BITSTRUCT_NODISCARD
 #undef BITSTRUCT_CONSTEXPR
