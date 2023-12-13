@@ -51,7 +51,7 @@ template <size_t bitlength> struct Bitstruct {
     Word &data;
 
     BITSTRUCT_CONSTEXPR Bitref &operator=(data_type i) noexcept(!THROWING) {
-      static_assert(!std::is_const<data_type>::value,
+      static_assert(not std::is_const<data_type>::value,
                     "cannot assign to const value");
       auto &w = reinterpret_cast<Word &>(i);
 #ifndef NDEBUG
