@@ -81,14 +81,20 @@ template <size_t bitlength> struct Bitstruct {
   };
 
   template <size_t bit, size_t extent = 1, typename T = uint8_t>
-  BITSTRUCT_CONSTEXPR Bitref<bit, extent, T> get() noexcept {
+  BITSTRUCT_CONSTEXPR Bitref<bit % 8, extent, T> get() noexcept {
     static_assert(sizeof(T) <= sizeof(data), "Data type is too small");
     static_assert(bit < sizeof(data) * 8, "Bit index is out of bounds");
     static_assert(bit + extent <= sizeof(data) * 8,
                   "Bit extent is out of bounds");
     using Word = impl::Bytes<sizeof(T)>;
-    return Bitref<bit, extent, T>(reinterpret_cast<Word &>(data[bit / 8]));
+    return Bitref<bit % 8, extent, T>(reinterpret_cast<Word &>(data[bit / 8]));
   }
+  template <size_t bit, size_t extent = 1, typename T = uint8_t>
+  BITSTRUCT_CONSTEXPR Bitref<bit % 8, extent, const T>
+  get() const noexcept {
+    return const_cast<Bitstruct &>(*this).get<bit, extent, const T>();
+  }
+
   template <size_t bit, size_t extent = 1, typename T = uint8_t>
   BITSTRUCT_CONSTEXPR Bitref<bit, extent, const T> get() const noexcept {
     return get<bit, extent, const T>();
