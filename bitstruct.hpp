@@ -3,7 +3,6 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <type_traits>
 #ifndef NDEBUG
 #include <stdexcept>
 #endif
@@ -36,7 +35,7 @@
   Bitref<index % 8, extent, type> name() noexcept {                            \
     return get<index, extent, type>();                                         \
   }                                                                            \
-  Bitref<index % 8, extent, const type> name() const noexcept {                \
+  Bitref<index % 8, extent, type const> name() const noexcept {                \
     return get<index, extent, type>();                                         \
   }
 
@@ -119,23 +118,9 @@ template <size_t bitlength> struct Bitstruct {
     return Bitref<bit % 8, extent, T>(reinterpret_cast<Word &>(_data[bit / 8]));
   }
 
-  template <typename T>
-  using NonPtr = typename std::enable_if<!std::is_pointer<T>::value, T>::type;
-  template <typename T>
-  using Ptr = typename std::enable_if<std::is_pointer<T>::value, T>::type;
-
   template <size_t bit, size_t extent = 1, typename T = uint8_t>
-  BITSTRUCT_FUNCTION Bitref<bit % 8, extent, const NonPtr<T>>
-  get() const noexcept {
+  BITSTRUCT_FUNCTION Bitref<bit % 8, extent, const T> get() const noexcept {
     return const_cast<Bitstruct &>(*this).get<bit, extent, const T>();
-  }
-
-  template <size_t bit, size_t extent = 1, typename T = uint8_t>
-  BITSTRUCT_FUNCTION Bitref<bit % 8, extent,
-                            const typename std::remove_pointer<Ptr<T>>::type *>
-  get() const noexcept {
-    return const_cast<Bitstruct &>(*this)
-        .get<bit, extent, const typename std::remove_pointer<T>::type *>();
   }
 
   BITSTRUCT_FUNCTION uint8_t *data() noexcept { return _data.data(); }
