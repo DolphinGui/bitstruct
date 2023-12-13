@@ -11,8 +11,11 @@
 #define THROWING false
 #endif
 
-#if __cplusplus > 201103
+#if __cplusplus > 201103L
 #define BITSTRUCT_CONSTEXPR constexpr
+#if __cplusplus >= 202002L
+#include <span>
+#endif
 #else
 #define BITSTRUCT_CONSTEXPR
 #endif
@@ -128,6 +131,21 @@ template <size_t bitlength> struct Bitstruct {
     return _data.data();
   }
   constexpr size_t size() const noexcept { return _data.size(); };
+
+#ifdef __cpp_lib_span
+
+  template <typename Char = uint8_t>
+  BITSTRUCT_CONSTEXPR std::span<Char> data_span() noexcept {
+    return std::span<Char>(reinterpret_cast<Char *>(_data.data()),
+                           _data.size());
+  }
+  template <typename Char = uint8_t>
+  BITSTRUCT_CONSTEXPR std::span<const Char> data_span() const noexcept {
+    return std::span<const Char>(reinterpret_cast<const Char *>(_data.data()),
+                                 _data.size());
+  }
+
+#endif
 
 private:
   std::array<uint8_t, bitlength / 8> _data{};
