@@ -78,8 +78,8 @@ template <size_t bitlength> struct Bitstruct {
   struct Bitref {
     using Word = impl::Bytes<sizeof(data_type)>;
 
-    constexpr Bitref(uint8_t *w) : data(w){};
-    uint8_t *data;
+    constexpr Bitref(Word &w) : data(w){};
+    Word &data;
 
     BITSTRUCT_CONSTEXPR Bitref &
     operator=(data_type i) noexcept(!impl::throwing) {
@@ -97,19 +97,14 @@ template <size_t bitlength> struct Bitstruct {
           impl::truncate<sizeof(Word) * 8 - extent>(Word(0xFFFFFFFFFFFFFFFF));
       mask <<= begin;
       mask = ~mask;
+      data &= mask;
+      data |= w;
 
-      auto mask_p = reinterpret_cast<uint8_t *>(&mask);
-      auto word_p = reinterpret_cast<uint8_t *>(&w);
-      for (size_t i = 0; i < impl::div_ceil(extent, 8); ++i) {
-        data[i] &= mask_p[i];
-        data[i] |= word_p[i];
-      }
       return *this;
     }
 
     BITSTRUCT_FUNCTION operator data_type() const noexcept {
-      Word d{};
-      std::memcpy(&d, data, impl::div_ceil(extent, 8));
+      Word d = data;
       d = impl::truncate<sizeof(Word) * 8 - (extent + begin)>(d);
       d >>= begin;
       return data_type(d);
@@ -125,7 +120,10 @@ template <size_t bitlength> struct Bitstruct {
     static_assert(bit < sizeof(_data) * 8, "Bit index is out of bounds");
     static_assert(bit + extent <= sizeof(_data) * 8,
                   "Bit extent is out of bounds");
-    return Bitref<bit % 8, extent, T>(&_data[bit / 8]);
+    static_assert((bit / 8) % alignof(T) == 0, "Access to T is not aligned");
+
+    using Word = impl::Bytes<sizeof(T)>;
+    return Bitref<bit % 8, extent, T>(reinterpret_cast<Word &>(_data[bit / 8]));
   }
 
   template <size_t bit, size_t extent = 1, typename T = uint8_t>
