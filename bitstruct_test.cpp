@@ -36,9 +36,9 @@ void test_reg() {
 
 enum struct DataType : uint8_t { null, integer, floating };
 struct PackedPtr : bit::Bitstruct<64> {
-  BITSTRUCT_FIELD_T(ptr, 0, 48, void *);
-  BITSTRUCT_FIELD_T(type, 48, 8, DataType);
-  BITSTRUCT_FIELD(len, 56, 8);
+  BITSTRUCT_FIELD_T(ptr, 16, 48, void *);
+  BITSTRUCT_FIELD_T(type, 8, 8, DataType);
+  BITSTRUCT_FIELD(len, 0, 8);
 };
 
 void test_ptr() {

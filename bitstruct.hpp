@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #ifndef NDEBUG
 #include <stdexcept>
 #endif
@@ -65,6 +66,11 @@ constexpr bool throwing = true;
 #else
 constexpr bool throwing = false;
 #endif
+constexpr size_t div_ceil(size_t a, size_t d) noexcept {
+  if (a % d == 0)
+    return a / d;
+  return a / d + 1;
+};
 } // namespace impl
 
 template <size_t bitlength> struct Bitstruct {
@@ -72,8 +78,8 @@ template <size_t bitlength> struct Bitstruct {
   struct Bitref {
     using Word = impl::Bytes<sizeof(data_type)>;
 
-    constexpr Bitref(Word &w) : data(w){};
-    Word &data;
+    constexpr Bitref(uint8_t *w) : data(w){};
+    uint8_t *data;
 
     BITSTRUCT_CONSTEXPR Bitref &
     operator=(data_type i) noexcept(!impl::throwing) {
@@ -86,19 +92,24 @@ template <size_t bitlength> struct Bitstruct {
         throw std::runtime_error("Data type i is out of bounds");
       }
 #endif
-      w = impl::truncate<sizeof(Word) * 8 - extent>(w);
+      w = impl::truncate<sizeof(Word) * 8 - extent>(w) << begin;
       auto mask =
           impl::truncate<sizeof(Word) * 8 - extent>(Word(0xFFFFFFFFFFFFFFFF));
       mask <<= begin;
       mask = ~mask;
-      // zeros out bits about to be overwritten
-      data &= mask;
-      data |= w << begin;
+
+      auto mask_p = reinterpret_cast<uint8_t *>(&mask);
+      auto word_p = reinterpret_cast<uint8_t *>(&w);
+      for (size_t i = 0; i < impl::div_ceil(extent, 8); ++i) {
+        data[i] &= mask_p[i];
+        data[i] |= word_p[i];
+      }
       return *this;
     }
 
     BITSTRUCT_FUNCTION operator data_type() const noexcept {
-      Word d = data;
+      Word d{};
+      std::memcpy(&d, data, impl::div_ceil(extent, 8));
       d = impl::truncate<sizeof(Word) * 8 - (extent + begin)>(d);
       d >>= begin;
       return data_type(d);
@@ -114,8 +125,7 @@ template <size_t bitlength> struct Bitstruct {
     static_assert(bit < sizeof(_data) * 8, "Bit index is out of bounds");
     static_assert(bit + extent <= sizeof(_data) * 8,
                   "Bit extent is out of bounds");
-    using Word = impl::Bytes<sizeof(T)>;
-    return Bitref<bit % 8, extent, T>(reinterpret_cast<Word &>(_data[bit / 8]));
+    return Bitref<bit % 8, extent, T>(&_data[bit / 8]);
   }
 
   template <size_t bit, size_t extent = 1, typename T = uint8_t>
